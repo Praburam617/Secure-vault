@@ -18,10 +18,12 @@ def create_app(config_name='default'):
     app.config.from_object(config_by_name[config_name])
 
     # Ensure required directories exist
+    instance_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'instance')
     for folder in [app.config['RAW_FOLDER'], app.config['ENCRYPTED_FOLDER'], 
                    app.config['DECRYPTED_FOLDER'], app.config['LOGS_FOLDER'], 
-                   app.config['REPORTS_FOLDER']]:
+                   app.config['REPORTS_FOLDER'], instance_dir]:
         os.makedirs(folder, exist_ok=True)
+
 
     # Initialize extensions
     db.init_app(app)

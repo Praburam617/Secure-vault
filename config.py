@@ -45,13 +45,17 @@ class TestingConfig(Config):
 
 class ProductionConfig(Config):
     DEBUG = False
-    SESSION_COOKIE_SECURE = True
-    SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL') or \
-        'sqlite:///' + os.path.join(BASE_DIR, 'instance', 'securevault.db')
+    SESSION_COOKIE_SECURE = False
+    SQLALCHEMY_DATABASE_URI = (
+        os.environ.get('DATABASE_URL', '').replace('postgres://', 'postgresql://', 1)
+        if os.environ.get('DATABASE_URL')
+        else 'sqlite:///' + os.path.join(BASE_DIR, 'instance', 'securevault.db')
+    )
 
 config_by_name = {
     'development': DevelopmentConfig,
     'testing': TestingConfig,
     'production': ProductionConfig,
-    'default': DevelopmentConfig
+    'default': ProductionConfig
 }
+
