@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+
+{% block title %}Security Audit Log — SecureVault{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <h1 style="font-size: 2rem; margin-bottom: 0.25rem;">Security Audit Activity Log</h1>
+    <p style="color: var(--text-muted);">Immutable security and file access log events for your account.</p>
+</div>
+
+<div class="card">
+    {% if logs.items %}
+        <table class="file-table">
+            <thead>
+                <tr>
+                    <th>Timestamp (UTC)</th>
+                    <th>Action</th>
+                    <th>Status</th>
+                    <th>Client IP</th>
+                    <th>Details</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in logs.items %}
+                <tr>
+                    <td style="color: var(--text-muted); font-size: 0.85rem;">{{ log.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                    <td style="font-weight: 600; color: #FFFFFF;">{{ log.action }}</td>
+                    <td>
+                        <span class="badge badge-{% if log.status == 'SUCCESS' %}success{% else %}danger{% endif %}">
+                            {{ log.status }}
+                        </span>
+                    </td>
+                    <td style="font-family: monospace; font-size: 0.85rem;">{{ log.ip_address or '127.0.0.1' }}</td>
+                    <td style="color: var(--text-muted); font-size: 0.85rem;">{{ log.details or '-' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+
+        <!-- Pagination -->
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.5rem;">
+            <div>
+                {% if logs.has_prev %}
+                    <a href="{{ url_for('main.activity', page=logs.prev_num) }}" class="btn btn-secondary btn-sm">← Previous</a>
+                {% endif %}
+            </div>
+            <span style="font-size: 0.85rem; color: var(--text-muted);">Page {{ logs.page }} of {{ logs.pages }}</span>
+            <div>
+                {% if logs.has_next %}
+                    <a href="{{ url_for('main.activity', page=logs.next_num) }}" class="btn btn-secondary btn-sm">Next →</a>
+                {% endif %}
+            </div>
+        </div>
+    {% else %}
+        <p style="color: var(--text-muted); text-align: center; padding: 2rem;">No security activity logged yet.</p>
+    {% endif %}
+</div>
+{% endblock %}

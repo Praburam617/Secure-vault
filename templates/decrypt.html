@@ -1,0 +1,116 @@
+{% extends "base.html" %}
+
+{% block title %}Decrypt File — SecureVault{% endblock %}
+
+{% block content %}
+<div style="max-width: 680px; margin: 1rem auto;">
+    <div class="card">
+        <div style="text-align: center; margin-bottom: 2rem;">
+            <div style="width: 60px; height: 60px; border-radius: 50%; background: rgba(0, 191, 255, 0.12); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 2rem; margin: 0 auto 1rem; border: 1px solid var(--card-border);">
+                🔓
+            </div>
+            <h1 style="font-size: 1.8rem; margin-bottom: 0.5rem;">Decrypt File</h1>
+            <p style="color: var(--text-muted); font-size: 0.95rem;">
+                Upload a protected file payload or select a file from your vault to restore the original file.
+            </p>
+        </div>
+
+        <form id="decrypt-form" action="{{ url_for('main.decrypt_page') }}" method="POST" enctype="multipart/form-data">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <!-- Dropzone for encrypted file upload -->
+            <div id="decrypt-dropzone" class="dropzone" style="border-color: var(--accent);">
+                <div class="dropzone-icon" style="color: var(--accent);">📂</div>
+                <h3 style="margin-bottom: 0.5rem;">Drop protected file here</h3>
+                <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1rem;">or click to browse encrypted payload</p>
+                <input type="file" id="decrypt-file-input" name="file" style="display: none;">
+                <span id="decrypt-selected-file" style="font-weight: 600; color: var(--glow); font-size: 0.95rem;"></span>
+            </div>
+
+            {% if user_files %}
+                <div style="text-align: center; margin: 1.25rem 0; color: var(--text-dim); font-size: 0.9rem;">
+                    — OR select from your Vault —
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="file_id">Select Vault File</label>
+                    <select id="file_id" name="file_id" class="form-control">
+                        <option value="">-- Choose file from Vault --</option>
+                        {% for vf in user_files %}
+                            <option value="{{ vf.id }}">{{ vf.original_filename }} ({{ vf.formatted_size() }})</option>
+                        {% endfor %}
+                    </select>
+                </div>
+            {% endif %}
+
+            <!-- 3D / Animated Decryption Unlock Visualizer Overlay -->
+            <div id="decryption-animation-box" style="display: none; text-align: center; padding: 1.5rem; margin-top: 1.5rem; background: rgba(0, 255, 153, 0.05); border: 1px dashed var(--success); border-radius: 12px;">
+                <div style="font-size: 2.5rem; animation: pulseGlow 1.2s infinite alternate; color: var(--success); display: inline-block;">🔓</div>
+                <h4 style="margin-top: 0.75rem; color: #FFF;">Verifying protection password & SHA-256 hash...</h4>
+                <p style="color: var(--text-muted); font-size: 0.85rem;">Validating AES-256-GCM authentication tag</p>
+            </div>
+
+            <div class="form-group" style="margin-top: 1.5rem;">
+                <label class="form-label" for="password">Protection Password</label>
+                <input type="password" id="password" name="password" class="form-control" placeholder="Enter password used during encryption" required>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; padding: 0.9rem; margin-top: 1rem; font-size: 1.05rem;">
+                Decrypt & Download File
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+document.addEventListener('DOMContentLoaded', () => {
+    const dropzone = document.getElementById('decrypt-dropzone');
+    const fileInput = document.getElementById('decrypt-file-input');
+    const selectedText = document.getElementById('decrypt-selected-file');
+    const form = document.getElementById('decrypt-form');
+    const animBox = document.getElementById('decryption-animation-box');
+
+    if (dropzone && fileInput) {
+        dropzone.addEventListener('click', (e) => {
+            if (e.target !== fileInput) fileInput.click();
+        });
+
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files.length > 0) {
+                selectedText.textContent = `Selected: ${fileInput.files[0].name}`;
+            }
+        });
+
+        ['dragenter', 'dragover'].forEach(name => {
+            dropzone.addEventListener(name, (e) => {
+                e.preventDefault();
+                dropzone.classList.add('dragover');
+            });
+        });
+
+        ['dragleave', 'drop'].forEach(name => {
+            dropzone.addEventListener(name, (e) => {
+                e.preventDefault();
+                dropzone.classList.remove('dragover');
+            });
+        });
+
+        dropzone.addEventListener('drop', (e) => {
+            const files = e.dataTransfer.files;
+            if (files.length > 0) {
+                fileInput.files = files;
+                selectedText.textContent = `Selected: ${files[0].name}`;
+            }
+        });
+    }
+
+    if (form) {
+        form.addEventListener('submit', () => {
+            if (animBox) animBox.style.display = 'block';
+        });
+    }
+});
+</script>
+{% endblock %}

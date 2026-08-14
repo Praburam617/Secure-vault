@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+
+{% block title %}Shared Protected File — SecureVault{% endblock %}
+
+{% block content %}
+<div style="max-width:560px;margin:2.5rem auto;">
+    {% if expired %}
+    <!-- EXPIRED / INVALID LINK -->
+    <div class="card" style="text-align:center;padding:2.5rem 2rem;border-color:rgba(255,60,60,0.35);">
+        <div style="font-size:3.5rem;margin-bottom:1rem;">🔒</div>
+        <h1 style="font-size:1.8rem;margin-bottom:0.5rem;color:#FF6B6B;">Link Unavailable</h1>
+        <p style="color:var(--text-muted);margin-bottom:1.5rem;">
+            This secure share link has <strong style="color:#FF8080;">expired</strong> or reached its <strong style="color:#FF8080;">maximum download limit</strong>.
+        </p>
+        <div style="background:rgba(255,60,60,0.06);border:1px solid rgba(255,60,60,0.2);border-radius:10px;padding:1rem;margin-bottom:1.5rem;font-size:0.88rem;color:var(--text-muted);">
+            Share links can expire based on time limits or download counts set by the sender.
+        </div>
+        <a href="{{ url_for('main.landing') }}" class="btn btn-secondary">← Back to SecureVault</a>
+    </div>
+
+    {% else %}
+    <!-- ACTIVE SHARE LINK -->
+    <div class="card" style="border-color:rgba(0,255,140,0.2);">
+
+        <!-- Header -->
+        <div style="text-align:center;margin-bottom:2rem;">
+            <div style="width:64px;height:64px;border-radius:50%;background:rgba(0,255,140,0.12);border:2px solid rgba(0,255,140,0.4);display:flex;align-items:center;justify-content:center;font-size:2rem;margin:0 auto 1rem;">🔒</div>
+            <h1 style="font-size:1.8rem;margin-bottom:0.25rem;">Secure Shared File</h1>
+            <p style="color:var(--text-muted);font-size:0.95rem;">You've been sent an AES-256-GCM protected file.</p>
+        </div>
+
+        <!-- File Info -->
+        <div style="background:rgba(1,10,4,0.7);border:1px solid rgba(0,255,140,0.15);border-radius:12px;padding:1.25rem;margin-bottom:1.5rem;">
+            <div style="display:flex;justify-content:space-between;margin-bottom:0.6rem;">
+                <span style="color:var(--text-muted);font-size:0.9rem;">Filename</span>
+                <strong style="color:#FFF;font-size:0.9rem;">{{ file_record.original_filename }}</strong>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:0.6rem;">
+                <span style="color:var(--text-muted);font-size:0.9rem;">Size</span>
+                <span style="font-size:0.9rem;">{{ file_record.formatted_size() }}</span>
+            </div>
+            <div style="display:flex;justify-content:space-between;margin-bottom:0.6rem;">
+                <span style="color:var(--text-muted);font-size:0.9rem;">Integrity</span>
+                <span style="color:#00FF99;font-size:0.85rem;font-weight:600;">✓ SHA-256 Verified</span>
+            </div>
+            {% if share_link.max_downloads %}
+            <div style="display:flex;justify-content:space-between;margin-bottom:0.6rem;">
+                <span style="color:var(--text-muted);font-size:0.9rem;">Downloads</span>
+                <span style="font-size:0.9rem;">
+                    <strong style="color:#FFF;">{{ share_link.download_count }}</strong>
+                    <span style="color:var(--text-dim);">/ {{ share_link.max_downloads }}</span>
+                    {% set remaining = share_link.max_downloads - share_link.download_count %}
+                    <span style="margin-left:0.5rem;" class="badge badge-{% if remaining <= 1 %}danger{% elif remaining <= 3 %}warning{% else %}success{% endif %}">
+                        {{ remaining }} left
+                    </span>
+                </span>
+            </div>
+            {% endif %}
+            {% if share_link.expires_at %}
+            <div style="display:flex;justify-content:space-between;">
+                <span style="color:var(--text-muted);font-size:0.9rem;">Expires</span>
+                <span style="font-size:0.85rem;color:var(--text-muted);">{{ share_link.expires_at.strftime('%Y-%m-%d %H:%M UTC') }}</span>
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Wrong password error -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+            <div style="padding:0.85rem 1rem;border-radius:10px;margin-bottom:1rem;font-size:0.9rem;
+                        background:rgba({% if category == 'danger' %}255,60,60{% else %}0,255,140{% endif %},0.08);
+                        border:1px solid rgba({% if category == 'danger' %}255,60,60{% else %}0,255,140{% endif %},0.3);
+                        color:{% if category == 'danger' %}#FF8080{% else %}#00FF99{% endif %};">
+                {{ '⚠️' if category == 'danger' else '✓' }} {{ message }}
+            </div>
+            {% endfor %}
+        {% endif %}
+        {% endwith %}
+
+        <!-- Download Form -->
+        <form action="{{ url_for('main.access_share', token=share_link.share_token) }}" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            {% if requires_password %}
+            <div class="form-group">
+                <label class="form-label" for="share_password">
+                    🔑 Share Link Passcode
+                    <span style="color:var(--text-dim);font-weight:400;font-size:0.82rem;"> — required by sender</span>
+                </label>
+                <input type="password" id="share_password" name="share_password" class="form-control"
+                       placeholder="Enter share passcode" required autofocus>
+            </div>
+            {% endif %}
+
+            <div class="form-group">
+                <label class="form-label" for="file_password">
+                    🔓 File Protection Password
+                    <span style="color:var(--text-dim);font-weight:400;font-size:0.82rem;"> — required to decrypt</span>
+                </label>
+                <input type="password" id="file_password" name="file_password" class="form-control"
+                       placeholder="Enter the file decryption password" required
+                       {% if not requires_password %}autofocus{% endif %}>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width:100%;margin-top:1rem;padding:0.9rem;font-size:1.05rem;">
+                ⬇️ Decrypt &amp; Download File
+            </button>
+        </form>
+
+        <p style="text-align:center;margin-top:1.25rem;font-size:0.8rem;color:var(--text-dim);">
+            Secured with AES-256-GCM encryption &amp; SHA-256 integrity verification
+        </p>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

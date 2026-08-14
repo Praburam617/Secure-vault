@@ -1,0 +1,51 @@
+{% extends "base.html" %}
+
+{% block title %}Register — SecureVault{% endblock %}
+
+{% block content %}
+<div class="auth-container">
+    <div class="card">
+        <div class="auth-header">
+            <h1>Create Account</h1>
+            <p>Set up your encrypted vault storage today.</p>
+        </div>
+
+        <form action="{{ url_for('auth.register') }}" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+            <div class="form-group">
+                <label class="form-label" for="username">Username</label>
+                <input type="text" id="username" name="username" class="form-control" placeholder="cyber_sec_user" required autofocus>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="email">Email Address</label>
+                <input type="email" id="email" name="email" class="form-control" placeholder="user@example.com" required>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="password">Password</label>
+                <div class="password-input-group">
+                    <input type="password" id="password" name="password" class="form-control" placeholder="At least 8 chars, A-Z, 0-9, !@#$" required>
+                    <button type="button" class="toggle-password" data-target="password">Show</button>
+                </div>
+                <div class="password-strength-bar">
+                    <div id="strength-progress" class="password-strength-progress"></div>
+                </div>
+                <span id="strength-label" style="font-size: 0.8rem; color: var(--text-muted); display: block; margin-top: 0.25rem;"></span>
+            </div>
+
+            <div class="form-group">
+                <label class="form-label" for="confirm_password">Confirm Password</label>
+                <input type="password" id="confirm_password" name="confirm_password" class="form-control" placeholder="Confirm password" required>
+            </div>
+
+            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 1rem;">Create Secure Account</button>
+        </form>
+
+        <div class="auth-footer">
+            Already have an account? <a href="{{ url_for('auth.login') }}">Log in</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

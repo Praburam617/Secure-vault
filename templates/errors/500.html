@@ -1,0 +1,10 @@
+{% extends "base.html" %}
+{% block title %}500 Internal Server Error — SecureVault{% endblock %}
+{% block content %}
+<div style="text-align: center; padding: 4rem 1rem;">
+    <h1 style="font-size: 5rem; color: var(--danger); margin-bottom: 0.5rem;">500</h1>
+    <h2 style="margin-bottom: 1rem;">Internal Server Error</h2>
+    <p style="color: var(--text-muted); max-width: 500px; margin: 0 auto 2rem;">An unexpected server error occurred. Technical details have been logged securely.</p>
+    <a href="{{ url_for('main.landing') }}" class="btn btn-primary">Return to Home</a>
+</div>
+{% endblock %}

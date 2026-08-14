@@ -1,0 +1,76 @@
+{% extends "base.html" %}
+
+{% block title %}Security & Usage Reports — SecureVault{% endblock %}
+
+{% block content %}
+<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+    <div>
+        <h1 style="font-size: 2rem; margin-bottom: 0.25rem;">Security & Storage Reports</h1>
+        <p style="color: var(--text-muted);">Generated report summary for account {{ summary.username }}.</p>
+    </div>
+
+    <a href="{{ url_for('main.reports', format='json') }}" target="_blank" class="btn btn-secondary">Export Report (JSON)</a>
+</div>
+
+<div class="card" style="margin-bottom: 2rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--card-border); padding-bottom: 1rem; margin-bottom: 1.5rem;">
+        <div>
+            <h2>Account Security Overview</h2>
+            <span style="font-size: 0.85rem; color: var(--text-dim);">Report Timestamp: {{ summary.generated_at }}</span>
+        </div>
+        <span class="badge badge-{{ summary.security_class }}" style="font-size: 1.1rem; padding: 0.5rem 1rem;">
+            Security Score: {{ summary.security_score }} / 100
+        </span>
+    </div>
+
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.5rem;">
+        <div style="background: rgba(5,8,22,0.6); padding: 1.25rem; border-radius: 8px; border: 1px solid var(--card-border);">
+            <div style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.25rem;">TOTAL PROTECTED FILES</div>
+            <div style="font-size: 1.8rem; font-weight: 700;">{{ summary.encrypted_files }}</div>
+        </div>
+
+        <div style="background: rgba(5,8,22,0.6); padding: 1.25rem; border-radius: 8px; border: 1px solid var(--card-border);">
+            <div style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.25rem;">STORAGE CONSUMPTION</div>
+            <div style="font-size: 1.8rem; font-weight: 700;">{{ summary.storage_used_formatted }}</div>
+        </div>
+
+        <div style="background: rgba(5,8,22,0.6); padding: 1.25rem; border-radius: 8px; border: 1px solid var(--card-border);">
+            <div style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.25rem;">ENCRYPTION OPERATIONS</div>
+            <div style="font-size: 1.8rem; font-weight: 700;">{{ summary.encryption_events }}</div>
+        </div>
+
+        <div style="background: rgba(5,8,22,0.6); padding: 1.25rem; border-radius: 8px; border: 1px solid var(--card-border);">
+            <div style="color: var(--text-muted); font-size: 0.85rem; margin-bottom: 0.25rem;">DECRYPTION OPERATIONS</div>
+            <div style="font-size: 1.8rem; font-weight: 700;">{{ summary.decryption_events }}</div>
+        </div>
+    </div>
+</div>
+
+<div class="card">
+    <h3 style="margin-bottom: 1rem;">Security Activity Event Digest</h3>
+    {% if summary.recent_activity %}
+        <table class="file-table">
+            <thead>
+                <tr>
+                    <th>Time</th>
+                    <th>Action</th>
+                    <th>Status</th>
+                    <th>IP Address</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for log in summary.recent_activity %}
+                <tr>
+                    <td style="color: var(--text-muted); font-size: 0.85rem;">{{ log.created_at.strftime('%Y-%m-%d %H:%M:%S') }}</td>
+                    <td style="font-weight: 600;">{{ log.action }}</td>
+                    <td><span class="badge badge-{% if log.status == 'SUCCESS' %}success{% else %}danger{% endif %}">{{ log.status }}</span></td>
+                    <td style="font-family: monospace; font-size: 0.85rem;">{{ log.ip_address or '127.0.0.1' }}</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p style="color: var(--text-muted);">No activity available for digest.</p>
+    {% endif %}
+</div>
+{% endblock %}

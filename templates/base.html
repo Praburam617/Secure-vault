@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="SecureVault — Secure File Encryption & Privacy Platform">
+    <title>{% block title %}SecureVault — Secure File Encryption & Privacy Platform{% endblock %}</title>
+
+    <!-- Stylesheets -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/main.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/auth.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/dashboard.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/vault.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/responsive.css') }}">
+
+    <!-- Three.js 3D Library -->
+    <script src="https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.min.js"></script>
+</head>
+<body class="{% if request.endpoint == 'main.landing' %}landing-page{% endif %}">
+
+    <!-- Header Navigation -->
+    <header class="app-header" style="background:rgba(1,7,3,0.82);backdrop-filter:blur(18px);border-bottom:1px solid rgba(0,255,140,0.12);">
+        <a href="{{ url_for('main.landing') if not current_user.is_authenticated else url_for('main.dashboard') }}" class="brand-logo">
+            <span class="shield-icon"></span>
+            SecureVault
+        </a>
+
+        <nav>
+            <ul class="nav-links">
+                {% if current_user.is_authenticated %}
+                    <li><a href="{{ url_for('main.dashboard') }}" class="nav-link {% if request.endpoint == 'main.dashboard' %}active{% endif %}">Dashboard</a></li>
+                    <li><a href="{{ url_for('main.vault') }}" class="nav-link {% if request.endpoint == 'main.vault' %}active{% endif %}">My Vault</a></li>
+                    <li><a href="{{ url_for('main.encrypt_page') }}" class="nav-link {% if request.endpoint == 'main.encrypt_page' %}active{% endif %}">🔐 Encrypt</a></li>
+                    <li><a href="{{ url_for('main.decrypt_page') }}" class="nav-link {% if request.endpoint == 'main.decrypt_page' %}active{% endif %}">🔓 Decrypt</a></li>
+                    <li><a href="{{ url_for('main.how_it_works') }}" class="nav-link {% if request.endpoint == 'main.how_it_works' %}active{% endif %}">How It Works</a></li>
+                    <li><a href="{{ url_for('main.security') }}" class="nav-link {% if request.endpoint == 'main.security' %}active{% endif %}">Security</a></li>
+                    <li><a href="{{ url_for('main.activity') }}" class="nav-link {% if request.endpoint == 'main.activity' %}active{% endif %}">Audit Log</a></li>
+                    <li><a href="{{ url_for('auth.logout') }}" class="btn btn-secondary btn-sm">Logout</a></li>
+                {% else %}
+                    <li><a href="{{ url_for('main.landing') }}" class="nav-link {% if request.endpoint == 'main.landing' %}active{% endif %}">Home</a></li>
+                    <li><a href="{{ url_for('main.how_it_works') }}" class="nav-link {% if request.endpoint == 'main.how_it_works' %}active{% endif %}">Learn How It Works</a></li>
+                    <li><a href="{{ url_for('auth.login') }}" class="nav-link {% if request.endpoint == 'auth.login' %}active{% endif %}">Login</a></li>
+                    <li><a href="{{ url_for('auth.register') }}" class="btn btn-primary btn-sm" style="border-radius:50px;border:1.5px solid #00FF99;background:rgba(0,255,140,0.08);color:#00FF99;padding:0.45rem 1.25rem;">Protect a File</a></li>
+                {% endif %}
+            </ul>
+        </nav>
+    </header>
+
+    <!-- Main Content Body -->
+    <main class="main-content">
+        <!-- Flash Message Notifications -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                <div class="alerts-container">
+                    {% for category, message in messages %}
+                        <div class="alert alert-{{ category }}">
+                            <span>{{ message }}</span>
+                        </div>
+                    {% endfor %}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Footer — hidden on landing page (feature bar covers bottom) -->
+    {% if request.endpoint != 'main.landing' %}
+    <footer class="app-footer">
+        <p>&copy; 2026 SecureVault. Protect your digital files with AES-256-GCM &amp; SHA-256 integrity.</p>
+    </footer>
+    {% endif %}
+
+    <!-- Scripts -->
+    <script src="{{ url_for('static', filename='js/main.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/auth.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/vault.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/encryption.js') }}"></script>
+    <script src="{{ url_for('static', filename='js/security.js') }}"></script>
+    {% if request.endpoint != 'main.landing' %}
+    <script src="{{ url_for('static', filename='js/bg-particles.js') }}"></script>
+    {% endif %}
+    {% block scripts %}{% endblock %}
+</body>
+</html>
+

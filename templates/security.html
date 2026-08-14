@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+
+{% block title %}Security Center — SecureVault{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <h1 style="font-size: 2rem; margin-bottom: 0.25rem;">Security Center</h1>
+    <p style="color: var(--text-muted);">Real-time security controls, configuration status, and health score.</p>
+</div>
+
+<div class="dashboard-columns">
+    <!-- Active Security Controls -->
+    <div>
+        <div class="card" style="margin-bottom: 1.5rem;">
+            <h2 style="margin-bottom: 1.25rem;">Active Security Controls</h2>
+
+            <div style="display: flex; flex-direction: column; gap: 1rem;">
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem; background: rgba(5,8,22,0.5); border-radius: 8px;">
+                    <div>
+                        <strong style="color: #FFF;">Account Password Security</strong>
+                        <div style="font-size: 0.8rem; color: var(--text-muted);">Werkzeug Scrypt password hashing</div>
+                    </div>
+                    <span class="badge badge-success">✓ Active</span>
+                </div>
+
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem; background: rgba(5,8,22,0.5); border-radius: 8px;">
+                    <div>
+                        <strong style="color: #FFF;">AES-256-GCM Cipher Engine</strong>
+                        <div style="font-size: 0.8rem; color: var(--text-muted);">Authenticated encryption with unique IV/nonce per file</div>
+                    </div>
+                    <span class="badge badge-success">✓ Active</span>
+                </div>
+
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem; background: rgba(5,8,22,0.5); border-radius: 8px;">
+                    <div>
+                        <strong style="color: #FFF;">SHA-256 Integrity Verification</strong>
+                        <div style="font-size: 0.8rem; color: var(--text-muted);">Pre/post decryption checksum verification</div>
+                    </div>
+                    <span class="badge badge-success">✓ Active</span>
+                </div>
+
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem; background: rgba(5,8,22,0.5); border-radius: 8px;">
+                    <div>
+                        <strong style="color: #FFF;">CSRF Protection</strong>
+                        <div style="font-size: 0.8rem; color: var(--text-muted);">Flask-WTF token validation on all POST requests</div>
+                    </div>
+                    <span class="badge badge-success">✓ Enabled</span>
+                </div>
+
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem; background: rgba(5,8,22,0.5); border-radius: 8px;">
+                    <div>
+                        <strong style="color: #FFF;">Secure Session Management</strong>
+                        <div style="font-size: 0.8rem; color: var(--text-muted);">HttpOnly, SameSite=Lax, Session Fixation clearance</div>
+                    </div>
+                    <span class="badge badge-success">✓ Enabled</span>
+                </div>
+
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem; background: rgba(5,8,22,0.5); border-radius: 8px;">
+                    <div>
+                        <strong style="color: #FFF;">Upload Protection & Magic Byte Checks</strong>
+                        <div style="font-size: 0.8rem; color: var(--text-muted);">Header magic signatures & UUID physical filenames</div>
+                    </div>
+                    <span class="badge badge-success">✓ Enabled</span>
+                </div>
+
+                <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.75rem; background: rgba(5,8,22,0.5); border-radius: 8px;">
+                    <div>
+                        <strong style="color: #FFF;">Brute Force & Rate Limiting</strong>
+                        <div style="font-size: 0.8rem; color: var(--text-muted);">15-minute progressive account lockout after 5 failed logins</div>
+                    </div>
+                    <span class="badge badge-success">✓ Enabled</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Security Score Breakdown -->
+    <div>
+        <div class="card score-widget" style="margin-bottom: 1.5rem;">
+            <h3>Calculated Health Score</h3>
+            <div class="score-circle">
+                <span class="score-number">{{ score }}</span>
+                <span class="score-max">/ 100</span>
+            </div>
+            <div>
+                <span class="badge badge-{{ score_class }}" style="font-size: 1rem; padding: 0.5rem 1rem;">{{ score_label }}</span>
+            </div>
+            <p style="font-size: 0.85rem; color: var(--text-muted); margin-top: 1rem;">
+                Score is calculated automatically from active sessions, password strength, and encryption usage.
+            </p>
+        </div>
+
+        <div class="card">
+            <h3>Quick Actions</h3>
+            <div style="display: flex; flex-direction: column; gap: 0.75rem; margin-top: 1rem;">
+                <a href="{{ url_for('main.sessions_page') }}" class="btn btn-secondary btn-sm">Manage Active Sessions ({{ active_sessions_count }})</a>
+                <a href="{{ url_for('main.settings_page') }}" class="btn btn-secondary btn-sm">Update Password / Security Settings</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,40 @@
+# Python artifacts
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+venv/
+ENV/
+
+# Environment and Secrets
+.env
+.env.local
+
+# Database
+instance/
+*.db
+*.sqlite
+
+# Uploads & User Files
+uploads/raw/*
+uploads/encrypted/*
+uploads/decrypted/*
+!uploads/raw/.gitkeep
+!uploads/encrypted/.gitkeep
+!uploads/decrypted/.gitkeep
+
+# Logs
+logs/*
+!logs/.gitkeep
+
+# Reports
+reports/*
+!reports/.gitkeep
+
+# IDE & OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db

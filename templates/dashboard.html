@@ -1,0 +1,182 @@
+{% extends "base.html" %}
+
+{% block title %}Dashboard — SecureVault{% endblock %}
+
+{% block content %}
+<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:2rem;flex-wrap:wrap;gap:1rem;">
+    <div>
+        <h1 style="font-size:2rem;margin-bottom:0.25rem;">Welcome back, <span style="color:#00FF99;">{{ current_user.username }}</span>.</h1>
+        <p style="color:var(--text-muted);">Your files are protected with <span style="color:#00FF99;font-weight:600;">AES-256-GCM</span>.</p>
+    </div>
+    <div style="display:flex;gap:0.75rem;">
+        <a href="{{ url_for('main.encrypt_page') }}" class="btn btn-primary">🔐 Encrypt &amp; Protect</a>
+        <a href="{{ url_for('main.decrypt_page') }}" class="btn btn-secondary">🔓 Decrypt File</a>
+    </div>
+</div>
+
+<!-- Quick Workflow Action Cards -->
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;margin-bottom:2rem;">
+    <div class="card" style="background:linear-gradient(135deg,rgba(0,255,140,0.08),rgba(13,19,36,0.9));border-color:rgba(0,255,140,0.3);transition:transform 0.2s,box-shadow 0.2s;"
+         onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 30px rgba(0,255,140,0.18)'"
+         onmouseout="this.style.transform='';this.style.boxShadow=''">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+            <div>
+                <h3 style="font-size:1.25rem;margin-bottom:0.35rem;color:#FFF;">Protect a File</h3>
+                <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:1.25rem;">Encrypt with AES-256-GCM and generate a secure share link.</p>
+                <a href="{{ url_for('main.encrypt_page') }}" class="btn btn-primary btn-sm">Encrypt &amp; Protect →</a>
+            </div>
+            <div style="font-size:3rem;opacity:0.8;">🔐</div>
+        </div>
+    </div>
+    <div class="card" style="background:linear-gradient(135deg,rgba(0,191,255,0.06),rgba(13,19,36,0.9));border-color:rgba(0,191,255,0.25);transition:transform 0.2s,box-shadow 0.2s;"
+         onmouseover="this.style.transform='translateY(-3px)';this.style.boxShadow='0 8px 30px rgba(0,191,255,0.15)'"
+         onmouseout="this.style.transform='';this.style.boxShadow=''">
+        <div style="display:flex;align-items:center;justify-content:space-between;">
+            <div>
+                <h3 style="font-size:1.25rem;margin-bottom:0.35rem;color:#FFF;">Decrypt a File</h3>
+                <p style="color:var(--text-muted);font-size:0.9rem;margin-bottom:1.25rem;">Restore and download the original file from your vault.</p>
+                <a href="{{ url_for('main.decrypt_page') }}" class="btn btn-secondary btn-sm">Decrypt File →</a>
+            </div>
+            <div style="font-size:3rem;opacity:0.8;">🔓</div>
+        </div>
+    </div>
+</div>
+
+<!-- Stat Cards -->
+<div class="dashboard-grid">
+    <div class="card stat-card">
+        <div class="stat-icon">📁</div>
+        <div class="stat-info">
+            <h3>Protected Files</h3>
+            <div class="stat-value">{{ stats.encrypted_files }}</div>
+        </div>
+    </div>
+    <div class="card stat-card">
+        <div class="stat-icon">💾</div>
+        <div class="stat-info">
+            <h3>Storage Used</h3>
+            <div class="stat-value">{{ stats.storage_used_formatted }}</div>
+        </div>
+    </div>
+    <div class="card stat-card">
+        <div class="stat-icon">🔒</div>
+        <div class="stat-info">
+            <h3>Encryption Events</h3>
+            <div class="stat-value">{{ stats.encryption_events }}</div>
+        </div>
+    </div>
+    <div class="card stat-card">
+        <div class="stat-icon">🚨</div>
+        <div class="stat-info">
+            <h3>Security Alerts</h3>
+            <div class="stat-value">{{ stats.security_alerts }}</div>
+        </div>
+    </div>
+</div>
+
+<!-- Split Columns -->
+<div class="dashboard-columns">
+    <!-- Left: Recent Files -->
+    <div>
+        <div class="card" style="margin-bottom:1.5rem;">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+                <h2>Recent Protected Files</h2>
+                <a href="{{ url_for('main.vault') }}" class="btn btn-secondary btn-sm">View Vault →</a>
+            </div>
+            {% if recent_files %}
+                <table class="file-table">
+                    <thead>
+                        <tr>
+                            <th>Filename</th>
+                            <th>Size</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for file in recent_files %}
+                        <tr>
+                            <td class="file-title-cell">
+                                <div class="file-icon">📄</div>
+                                <div>
+                                    <div style="font-weight:600;color:#FFF;">{{ file.original_filename }}</div>
+                                    <span style="font-size:0.75rem;color:var(--text-dim);">SHA-256: {{ file.sha256_hash[:12] }}...</span>
+                                </div>
+                            </td>
+                            <td>{{ file.formatted_size() }}</td>
+                            <td><span class="badge badge-success">✓ Encrypted</span></td>
+                            <td style="color:var(--text-muted);font-size:0.85rem;">{{ file.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            {% else %}
+                <p style="color:var(--text-muted);text-align:center;padding:2rem;">No protected files yet. Click "Encrypt &amp; Protect" to get started.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Right: Security Score + Quick Links -->
+    <div>
+        <!-- Security Score -->
+        <div class="card score-widget" style="margin-bottom:1.5rem;">
+            <h3 style="margin-bottom:1rem;">Security Score</h3>
+            <div class="score-circle">
+                <span class="score-number">{{ stats.security_score }}</span>
+                <span class="score-max">/ 100</span>
+            </div>
+            <div>
+                <span class="badge badge-{{ stats.security_class }}" style="font-size:0.9rem;padding:0.4rem 0.8rem;">{{ stats.security_label }}</span>
+            </div>
+            <a href="{{ url_for('main.security') }}" style="display:inline-block;margin-top:1rem;font-size:0.85rem;">View Security Center →</a>
+        </div>
+
+        <!-- Quick Actions (replaces Security Log) -->
+        <div class="card">
+            <h3 style="margin-bottom:1.25rem;">Quick Actions</h3>
+            <div style="display:flex;flex-direction:column;gap:0.65rem;">
+                <a href="{{ url_for('main.vault') }}" style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem 1rem;background:rgba(0,255,140,0.05);border:1px solid rgba(0,255,140,0.15);border-radius:10px;color:#FFF;text-decoration:none;transition:all 0.2s;"
+                   onmouseover="this.style.background='rgba(0,255,140,0.1)';this.style.borderColor='rgba(0,255,140,0.35)'"
+                   onmouseout="this.style.background='rgba(0,255,140,0.05)';this.style.borderColor='rgba(0,255,140,0.15)'">
+                    <span style="font-size:1.3rem;">🗂️</span>
+                    <div>
+                        <div style="font-weight:600;font-size:0.9rem;">My Vault</div>
+                        <div style="color:var(--text-muted);font-size:0.78rem;">Manage all protected files</div>
+                    </div>
+                    <span style="margin-left:auto;color:var(--text-dim);">→</span>
+                </a>
+                <a href="{{ url_for('main.encrypt_page') }}" style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem 1rem;background:rgba(0,255,140,0.05);border:1px solid rgba(0,255,140,0.15);border-radius:10px;color:#FFF;text-decoration:none;transition:all 0.2s;"
+                   onmouseover="this.style.background='rgba(0,255,140,0.1)';this.style.borderColor='rgba(0,255,140,0.35)'"
+                   onmouseout="this.style.background='rgba(0,255,140,0.05)';this.style.borderColor='rgba(0,255,140,0.15)'">
+                    <span style="font-size:1.3rem;">🔐</span>
+                    <div>
+                        <div style="font-weight:600;font-size:0.9rem;">Encrypt a File</div>
+                        <div style="color:var(--text-muted);font-size:0.78rem;">Add a new protected file</div>
+                    </div>
+                    <span style="margin-left:auto;color:var(--text-dim);">→</span>
+                </a>
+                <a href="{{ url_for('main.activity') }}" style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem 1rem;background:rgba(0,255,140,0.05);border:1px solid rgba(0,255,140,0.15);border-radius:10px;color:#FFF;text-decoration:none;transition:all 0.2s;"
+                   onmouseover="this.style.background='rgba(0,255,140,0.1)';this.style.borderColor='rgba(0,255,140,0.35)'"
+                   onmouseout="this.style.background='rgba(0,255,140,0.05)';this.style.borderColor='rgba(0,255,140,0.15)'">
+                    <span style="font-size:1.3rem;">📋</span>
+                    <div>
+                        <div style="font-weight:600;font-size:0.9rem;">Audit Log</div>
+                        <div style="color:var(--text-muted);font-size:0.78rem;">Full security event history</div>
+                    </div>
+                    <span style="margin-left:auto;color:var(--text-dim);">→</span>
+                </a>
+                <a href="{{ url_for('main.security') }}" style="display:flex;align-items:center;gap:0.75rem;padding:0.75rem 1rem;background:rgba(0,255,140,0.05);border:1px solid rgba(0,255,140,0.15);border-radius:10px;color:#FFF;text-decoration:none;transition:all 0.2s;"
+                   onmouseover="this.style.background='rgba(0,255,140,0.1)';this.style.borderColor='rgba(0,255,140,0.35)'"
+                   onmouseout="this.style.background='rgba(0,255,140,0.05)';this.style.borderColor='rgba(0,255,140,0.15)'">
+                    <span style="font-size:1.3rem;">🛡️</span>
+                    <div>
+                        <div style="font-weight:600;font-size:0.9rem;">Security Center</div>
+                        <div style="color:var(--text-muted);font-size:0.78rem;">Threat analysis &amp; reports</div>
+                    </div>
+                    <span style="margin-left:auto;color:var(--text-dim);">→</span>
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

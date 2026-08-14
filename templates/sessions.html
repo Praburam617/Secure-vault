@@ -1,0 +1,56 @@
+{% extends "base.html" %}
+
+{% block title %}Active Sessions — SecureVault{% endblock %}
+
+{% block content %}
+<div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 2rem; flex-wrap: wrap; gap: 1rem;">
+    <div>
+        <h1 style="font-size: 2rem; margin-bottom: 0.25rem;">Active Login Sessions</h1>
+        <p style="color: var(--text-muted);">Manage devices currently logged into your account.</p>
+    </div>
+
+    <form action="{{ url_for('main.sessions_page') }}" method="POST">
+        <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+        <input type="hidden" name="action" value="revoke_others">
+        <button type="submit" class="btn btn-danger" onclick="return confirm('Sign out of all other active sessions?');">
+            Sign Out Other Sessions
+        </button>
+    </form>
+</div>
+
+<div class="card">
+    {% if sessions %}
+        <table class="file-table">
+            <thead>
+                <tr>
+                    <th>Device / User Agent</th>
+                    <th>IP Address</th>
+                    <th>Last Active</th>
+                    <th>Status</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for sess in sessions %}
+                <tr>
+                    <td>
+                        <div style="font-weight: 600; color: #FFFFFF;">{{ sess.device_info or 'Web Browser' }}</div>
+                        <span style="font-size: 0.75rem; color: var(--text-dim);">Token: {{ sess.session_token[:12] }}...</span>
+                    </td>
+                    <td style="font-family: monospace;">{{ sess.ip_address or '127.0.0.1' }}</td>
+                    <td style="color: var(--text-muted); font-size: 0.85rem;">{{ sess.last_seen.strftime('%Y-%m-%d %H:%M:%S UTC') }}</td>
+                    <td>
+                        {% if sess.session_token == current_token %}
+                            <span class="badge badge-success">● Current Session</span>
+                        {% else %}
+                            <span class="badge badge-primary">Active</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <p style="color: var(--text-muted); text-align: center; padding: 2rem;">No active session records found.</p>
+    {% endif %}
+</div>
+{% endblock %}

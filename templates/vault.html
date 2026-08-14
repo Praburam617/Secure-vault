@@ -1,0 +1,313 @@
+{% extends "base.html" %}
+
+{% block title %}My Vault — SecureVault{% endblock %}
+
+{% block content %}
+<div class="vault-header">
+    <div>
+        <h1 style="font-size: 2rem; margin-bottom: 0.25rem;">My Secure Vault</h1>
+        <p style="color: var(--text-muted);">Manage, decrypt, and securely share your AES-256-GCM protected files.</p>
+    </div>
+    <a href="{{ url_for('main.encrypt_page') }}" class="btn btn-primary">+ Protect File</a>
+</div>
+
+<!-- Search & Filter Controls -->
+<div class="card" style="margin-bottom: 1.5rem; padding: 1rem 1.5rem;">
+    <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+        <div class="vault-filters">
+            <a href="{{ url_for('main.vault', filter='all') }}" class="filter-btn {% if current_filter == 'all' %}active{% endif %}">All Files</a>
+            <a href="{{ url_for('main.vault', filter='encrypted') }}" class="filter-btn {% if current_filter == 'encrypted' %}active{% endif %}">Encrypted</a>
+            <a href="{{ url_for('main.vault', filter='shared') }}" class="filter-btn {% if current_filter == 'shared' %}active{% endif %}">Shared</a>
+            <a href="{{ url_for('main.vault', filter='trash') }}" class="filter-btn {% if current_filter == 'trash' %}active{% endif %}">Trash ({{ trash_count }})</a>
+        </div>
+
+        <form action="{{ url_for('main.vault') }}" method="GET" style="display: flex; gap: 0.5rem;">
+            <input type="hidden" name="filter" value="{{ current_filter }}">
+            <input type="text" name="q" value="{{ search_query }}" class="form-control" placeholder="Search files..." style="padding: 0.4rem 0.8rem; font-size: 0.9rem; min-width: 220px;">
+            <button type="submit" class="btn btn-secondary btn-sm">Search</button>
+        </form>
+    </div>
+</div>
+
+<!-- File List Table -->
+<div class="card">
+    {% if files %}
+        <table class="file-table">
+            <thead>
+                <tr>
+                    <th>File Name</th>
+                    <th>Size</th>
+                    <th>Type</th>
+                    <th>Integrity Check</th>
+                    <th>Protected Date</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for file in files %}
+                <tr>
+                    <td class="file-title-cell">
+                        <div class="file-icon">📄</div>
+                        <div>
+                            <div style="font-weight: 600; color: #FFFFFF;">{{ file.original_filename }}</div>
+                            <span style="font-size: 0.75rem; color: var(--text-dim);">SHA-256: {{ file.sha256_hash[:16] }}...</span>
+                        </div>
+                    </td>
+                    <td>{{ file.formatted_size() }}</td>
+                    <td><span class="badge badge-primary">{{ file.file_extension.upper() }}</span></td>
+                    <td><span class="badge badge-success">✓ Verified SHA-256</span></td>
+                    <td style="color: var(--text-muted); font-size: 0.85rem;">{{ file.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                    <td>
+                        <div style="display: flex; gap: 0.4rem; flex-wrap: wrap;">
+                            {% if not file.is_in_trash %}
+                                <button type="button" class="btn btn-primary btn-sm btn-trigger-decrypt" data-id="{{ file.id }}" data-name="{{ file.original_filename }}">Decrypt</button>
+                                <a href="{{ url_for('main.download_encrypted', file_id=file.id) }}" class="btn btn-secondary btn-sm">Payload</a>
+                                <button type="button" class="btn btn-secondary btn-sm btn-trigger-share" data-id="{{ file.id }}" data-name="{{ file.original_filename }}">Share</button>
+                                <button type="button" class="btn btn-secondary btn-sm btn-trigger-rename" data-id="{{ file.id }}" data-name="{{ file.original_filename }}">Rename</button>
+                                <form action="{{ url_for('main.delete_file', file_id=file.id) }}" method="POST" style="display: inline;">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-danger btn-sm">Delete</button>
+                                </form>
+                            {% else %}
+                                <form action="{{ url_for('main.restore_file', file_id=file.id) }}" method="POST" style="display: inline;">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-secondary btn-sm">Restore</button>
+                                </form>
+                                <form action="{{ url_for('main.purge_file', file_id=file.id) }}" method="POST" style="display: inline;" onsubmit="return confirm('Permanently wipe this file from disk?');">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-danger btn-sm">Delete Permanently</button>
+                                </form>
+                            {% endif %}
+                        </div>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    {% else %}
+        <div style="text-align: center; padding: 3rem 1rem;">
+            <div style="font-size: 3rem; margin-bottom: 1rem; color: var(--text-dim);">🛡️</div>
+            <h3>No files found in your vault</h3>
+            <p style="color: var(--text-muted); margin-top: 0.5rem;">There are no files matching your current filter or search criteria.</p>
+        </div>
+    {% endif %}
+</div>
+
+<!-- Decrypt Modal -->
+<div id="decryptModal" class="modal-overlay">
+    <div class="modal-card">
+        <h3 style="margin-bottom: 0.5rem;">Decrypt File</h3>
+        <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">
+            File: <strong id="decrypt-file-name" style="color: #FFF;"></strong>
+        </p>
+
+        <form id="decrypt-form" action="" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-group">
+                <label class="form-label" for="decrypt-password">Protection Password</label>
+                <input type="password" id="decrypt-password" name="password" class="form-control" placeholder="Enter password used to encrypt" required>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem;">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('decryptModal')">Cancel</button>
+                <button type="submit" class="btn btn-primary">Decrypt & Download</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Rename Modal -->
+<div id="renameModal" class="modal-overlay">
+    <div class="modal-card">
+        <h3 style="margin-bottom: 1rem;">Rename File</h3>
+        <form id="rename-form" action="" method="POST">
+            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+            <div class="form-group">
+                <label class="form-label" for="rename-input">New Filename</label>
+                <input type="text" id="rename-input" name="new_filename" class="form-control" required>
+            </div>
+            <div style="display: flex; justify-content: flex-end; gap: 0.75rem; margin-top: 1.5rem;">
+                <button type="button" class="btn btn-secondary" onclick="closeModal('renameModal')">Cancel</button>
+                <button type="submit" class="btn btn-primary">Save Name</button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Share Modal — Two Step: Configure then Show Link -->
+<div id="shareModal" class="modal-overlay">
+    <div class="modal-card" style="max-width:520px;width:100%;">
+
+        <!-- STEP 1: Configure -->
+        <div id="share-step-1">
+            <div style="display:flex;align-items:center;gap:0.75rem;margin-bottom:1.5rem;">
+                <div style="width:42px;height:42px;border-radius:50%;background:rgba(0,255,140,0.12);border:1px solid rgba(0,255,140,0.4);display:flex;align-items:center;justify-content:center;font-size:1.3rem;flex-shrink:0;">🔗</div>
+                <div>
+                    <h3 style="margin:0;font-size:1.1rem;">Create Secure Share Link</h3>
+                    <p style="color:var(--text-muted);font-size:0.85rem;margin:0;">File: <strong id="share-file-name" style="color:#FFF;"></strong></p>
+                </div>
+            </div>
+
+            <form id="share-form">
+                <input type="hidden" id="share-csrf" name="csrf_token" value="{{ csrf_token() }}">
+                <input type="hidden" id="share-file-id" name="file_id" value="">
+
+                <div class="form-group">
+                    <label class="form-label" for="share_password">Share Passcode <span style="color:var(--text-dim);font-weight:400;">(optional)</span></label>
+                    <input type="password" id="share_password" name="share_password" class="form-control" placeholder="Leave blank for public link">
+                </div>
+
+                <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+                    <div class="form-group">
+                        <label class="form-label" for="max_downloads">Max Downloads</label>
+                        <input type="number" id="max_downloads" name="max_downloads" class="form-control" placeholder="e.g. 5" min="1">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label" for="expiry_hours">Expiry (Hours)</label>
+                        <input type="number" id="expiry_hours" name="expiry_hours" class="form-control" placeholder="e.g. 24" min="1">
+                    </div>
+                </div>
+
+                <div style="display:flex;justify-content:flex-end;gap:0.75rem;margin-top:1.5rem;">
+                    <button type="button" class="btn btn-secondary" onclick="closeModal('shareModal')">Cancel</button>
+                    <button type="button" id="generate-share-btn" class="btn btn-primary" onclick="generateShareLink()">
+                        <span id="gen-btn-text">Generate Share Link →</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <!-- STEP 2: Show Generated Link -->
+        <div id="share-step-2" style="display:none;">
+            <div style="text-align:center;margin-bottom:1.5rem;">
+                <div style="width:55px;height:55px;border-radius:50%;background:rgba(0,255,140,0.15);border:2px solid #00FF99;display:flex;align-items:center;justify-content:center;font-size:1.6rem;margin:0 auto 0.75rem;">✓</div>
+                <h3 style="color:#00FF99;margin:0 0 0.25rem;">Link Generated!</h3>
+                <p style="color:var(--text-muted);font-size:0.85rem;margin:0;">Share this link — recipient needs the file password to decrypt.</p>
+            </div>
+
+            <!-- Link Display + Copy + QR Code -->
+            <div style="background:rgba(0,255,140,0.04);border:1px solid rgba(0,255,140,0.3);border-radius:12px;padding:1.25rem;margin-bottom:1rem;">
+                <label style="font-size:0.78rem;color:var(--text-muted);letter-spacing:0.05em;text-transform:uppercase;margin-bottom:0.5rem;display:block;">Secure Share URL (Mobile &amp; LAN Ready)</label>
+                <div style="display:flex;gap:0.5rem;align-items:center;margin-bottom:0.75rem;">
+                    <input type="text" id="generated-share-url" readonly class="form-control"
+                           style="font-family:monospace;font-size:0.85rem;background:rgba(1,7,3,0.9);color:#00FF99;border-color:rgba(0,255,140,0.35);flex:1;cursor:text;">
+                    <button type="button" id="copy-link-btn" onclick="copyShareLink()"
+                            style="flex-shrink:0;padding:0.6rem 1.1rem;background:rgba(0,255,140,0.15);border:1.5px solid #00FF99;color:#00FF99;border-radius:8px;font-weight:700;cursor:pointer;transition:all 0.2s;white-space:nowrap;font-size:0.9rem;"
+                            onmouseover="this.style.background='rgba(0,255,140,0.28)'"
+                            onmouseout="this.style.background='rgba(0,255,140,0.15)'">
+                        📋 Copy
+                    </button>
+                </div>
+                <div id="copy-feedback" style="display:none;margin-bottom:0.75rem;color:#00FF99;font-size:0.8rem;font-weight:600;">✓ Copied to clipboard!</div>
+
+                <!-- QR Code for Mobile Scanning -->
+                <div style="display:flex; align-items:center; gap:1rem; padding-top:0.75rem; border-top:1px dashed rgba(0,255,140,0.2);">
+                    <div style="background:#FFF; padding:0.4rem; border-radius:8px; border:1px solid #00FF99; flex-shrink:0;">
+                        <img id="share-qr-img" src="" alt="Mobile QR Code" style="width:110px; height:110px; display:block;">
+                    </div>
+                    <div>
+                        <div style="font-size:0.88rem; font-weight:600; color:#FFF; margin-bottom:0.2rem;">📱 Scan with Mobile Camera</div>
+                        <div style="font-size:0.8rem; color:var(--text-muted);">Points directly to your laptop's local network IP so it loads on mobile devices.</div>
+                    </div>
+                </div>
+            </div>
+
+
+            <!-- Link details -->
+            <div id="share-link-meta" style="font-size:0.82rem;color:var(--text-muted);display:flex;gap:1.5rem;flex-wrap:wrap;margin-bottom:1.5rem;padding:0 0.25rem;"></div>
+
+            <div style="display:flex;justify-content:flex-end;gap:0.75rem;">
+                <button type="button" class="btn btn-secondary" onclick="resetShareModal()">Create Another</button>
+                <button type="button" class="btn btn-primary" onclick="closeModal('shareModal')">Done</button>
+            </div>
+        </div>
+
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function generateShareLink() {
+    const btn = document.getElementById('generate-share-btn');
+    const txt = document.getElementById('gen-btn-text');
+    const fileId = document.getElementById('share-file-id').value;
+    const csrf   = document.getElementById('share-csrf').value;
+
+    txt.textContent = 'Generating...';
+    btn.disabled = true;
+
+    const body = new FormData();
+    body.append('csrf_token', csrf);
+    body.append('share_password', document.getElementById('share_password').value);
+    const md = document.getElementById('max_downloads').value;
+    const eh = document.getElementById('expiry_hours').value;
+    if (md) body.append('max_downloads', md);
+    if (eh) body.append('expiry_hours', eh);
+
+    try {
+        const resp = await fetch(`/vault/share/${fileId}`, {
+            method: 'POST',
+            headers: { 'X-Requested-With': 'XMLHttpRequest' },
+            body,
+        });
+        const data = await resp.json();
+
+        if (data.error) {
+            alert('Error: ' + data.error);
+            txt.textContent = 'Generate Share Link →';
+            btn.disabled = false;
+            return;
+        }
+
+        // Show Step 2
+        document.getElementById('share-step-1').style.display = 'none';
+        document.getElementById('share-step-2').style.display  = 'block';
+        document.getElementById('generated-share-url').value = data.share_url;
+        document.getElementById('share-qr-img').src = `https://api.qrserver.com/v1/create-qr-code/?size=150x150&data=${encodeURIComponent(data.share_url)}`;
+
+        // Meta info
+        const meta = document.getElementById('share-link-meta');
+        let parts = [];
+        if (data.max_downloads) parts.push(`⬇️ Max ${data.max_downloads} download${data.max_downloads > 1 ? 's' : ''}`);
+        if (data.expires_at)    parts.push(`⏰ Expires: ${data.expires_at}`);
+        if (data.has_password)  parts.push(`🔑 Passcode protected`);
+        meta.innerHTML = parts.map(p => `<span>${p}</span>`).join('');
+
+    } catch (e) {
+        alert('Network error. Please try again.');
+        txt.textContent = 'Generate Share Link →';
+        btn.disabled = false;
+    }
+}
+
+function copyShareLink() {
+    const input = document.getElementById('generated-share-url');
+    input.select();
+    navigator.clipboard.writeText(input.value).then(() => {
+        const btn = document.getElementById('copy-link-btn');
+        const fb  = document.getElementById('copy-feedback');
+        btn.textContent = '✓ Copied!';
+        btn.style.background = 'rgba(0,255,140,0.3)';
+        fb.style.display = 'block';
+        setTimeout(() => {
+            btn.textContent = '📋 Copy';
+            btn.style.background = 'rgba(0,255,140,0.15)';
+            fb.style.display = 'none';
+        }, 2500);
+    }).catch(() => {
+        document.execCommand('copy');
+    });
+}
+
+function resetShareModal() {
+    document.getElementById('share-step-1').style.display = 'block';
+    document.getElementById('share-step-2').style.display = 'none';
+    document.getElementById('gen-btn-text').textContent = 'Generate Share Link →';
+    document.getElementById('generate-share-btn').disabled = false;
+    document.getElementById('share_password').value = '';
+    document.getElementById('max_downloads').value = '';
+    document.getElementById('expiry_hours').value  = '';
+}
+</script>
+{% endblock %}
+

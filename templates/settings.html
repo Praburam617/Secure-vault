@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}Settings — SecureVault{% endblock %}
+
+{% block content %}
+<div style="margin-bottom: 2rem;">
+    <h1 style="font-size: 2rem; margin-bottom: 0.25rem;">Account & Security Settings</h1>
+    <p style="color: var(--text-muted);">Manage your account security, notifications, and application preferences.</p>
+</div>
+
+<div class="dashboard-columns">
+    <!-- Left Column: Change Password -->
+    <div>
+        <div class="card" style="margin-bottom: 1.5rem;">
+            <h2>Change Password</h2>
+            <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 1.5rem;">Update your account password regularly to ensure protection.</p>
+
+            <form action="{{ url_for('auth.change_password') }}" method="POST">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <div class="form-group">
+                    <label class="form-label" for="current_password">Current Password</label>
+                    <input type="password" id="current_password" name="current_password" class="form-control" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="new_password">New Password</label>
+                    <input type="password" id="new_password" name="new_password" class="form-control" placeholder="At least 8 chars, A-Z, 0-9, !@#$" required>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="confirm_password">Confirm New Password</label>
+                    <input type="password" id="confirm_password" name="confirm_password" class="form-control" required>
+                </div>
+
+                <button type="submit" class="btn btn-primary" style="margin-top: 1rem;">Update Password</button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Right Column: Preferences -->
+    <div>
+        <div class="card">
+            <h2>Preferences & Security Alerts</h2>
+            <form action="{{ url_for('main.settings_page') }}" method="POST" style="margin-top: 1.5rem;">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 0.75rem; font-size: 0.95rem; cursor: pointer;">
+                        <input type="checkbox" name="login_alerts" {% if settings.login_alerts %}checked{% endif %} style="accent-color: var(--primary);">
+                        Enable Login Security Notifications
+                    </label>
+                </div>
+
+                <div class="form-group" style="margin-top: 1.25rem;">
+                    <label class="form-label" for="default_retention_days">Default File Retention</label>
+                    <select id="default_retention_days" name="default_retention_days" class="form-control">
+                        <option value="0" {% if settings.default_retention_days == 0 %}selected{% endif %}>Never (Keep files indefinitely)</option>
+                        <option value="1" {% if settings.default_retention_days == 1 %}selected{% endif %}>24 Hours</option>
+                        <option value="7" {% if settings.default_retention_days == 7 %}selected{% endif %}>7 Days</option>
+                        <option value="30" {% if settings.default_retention_days == 30 %}selected{% endif %}>30 Days</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label class="form-label" for="theme">UI Theme</label>
+                    <select id="theme" name="theme" class="form-control">
+                        <option value="dark" {% if settings.theme == 'dark' %}selected{% endif %}>Dark Security Mode (Default)</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label style="display: flex; align-items: center; gap: 0.75rem; font-size: 0.95rem; cursor: pointer;">
+                        <input type="checkbox" name="reduced_motion" {% if settings.reduced_motion %}checked{% endif %} style="accent-color: var(--primary);">
+                        Reduce UI Motion & Background Animations
+                    </label>
+                </div>
+
+                <button type="submit" class="btn btn-secondary" style="margin-top: 1.5rem; width: 100%;">Save Preferences</button>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}
